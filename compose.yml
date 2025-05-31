@@ -1,0 +1,152 @@
+services:
+  # sse_market_client_pc:
+  #   image: sse_market_client-pc:latest
+  #   container_name: cilent_pc
+  #   build: ../SSE_market_client
+  #   # ports:
+  #   #   - 881:881
+  #   environment:
+  #     - TZ=Asia/Shanghai
+  #   volumes:
+  #     - /root/SSE_Market/Nginx:/etc/letsencrypt/
+  # sse_market_client_mobile:
+  #   image: sse_market_client-mobile:latest
+  #   container_name: cilent_mobile
+  #   restart: always
+  #   build: ../sse_market_mobile
+  #   # ports:
+  #   #   - 81:81
+  #   environment:
+  #     - TZ=Asia/Shanghai
+  #   volumes:
+  #     - /root/SSE_Market/Nginx:/etc/letsencrypt/
+  # sse_market_manager:
+  #   image: sse_market_manager:latest
+  #   container_name: manager
+  #   build: ../sse_market_manager
+  #   # ports:
+  #   #   - 82:82
+  #   environment:
+  #     - TZ=Asia/Shanghai
+  mysql:
+    image: mysql:8.1
+    container_name: sse_market_db
+    restart: on-failure:3
+    command:
+      --max_connections=1000
+      --default-authentication-plugin=mysql_native_password
+      --innodb_lock_wait_timeout=500
+    ports: 
+      - 3506:3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=admin
+      - TZ=Asia/Shanghai
+      - MYSQL_DATABASE=ssemarket
+    volumes:
+      - my-vol:/var/lib/mysql
+  redis:
+    image: redis:latest
+    environment:
+      - TZ=Asia/Shanghai
+  sse_market_server:
+    image: sse_market_server:latest
+    container_name: server
+    restart: on-failure:3
+    build: .
+    # ports:
+    #   - 8080:8080
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - /root/SSE_Market/sse_market_server_resource:/app/public
+      - /root/SSE_Market/log/server:/app/log
+      - /root/SSE_Market/database:/app/database
+      # - /root/SSE_Market/Nginx:/app/ssl
+  # sse_market_server_public:
+  #   image: sse_market_server_public:latest
+  #   container_name: server_public
+  #   restart: on-failure:3
+  #   build: ../sse_market_server_public
+  #   # ports:
+  #   #   - 8080:8080
+  #   environment:
+  #     - TZ=Asia/Shanghai
+  #   volumes:
+  #     - /root/SSE_Market/sse_market_server_public_resource:/app/public
+  #     - /root/SSE_Market/log/server_public:/app/log
+  #     - /root/SSE_Market/database_public:/app/database
+  #     # - /root/SSE_Market/Nginx:/app/ssl
+  nginx_proxy:
+    image: nginx_proxy
+    restart: on-failure:3
+    build: ../nginx_proxy
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - /root/SSE_Market/Nginx:/etc/letsencrypt/
+      - /root/SSE_Market/sse_market_mobile/dist:/usr/share/nginx/mb
+      - /root/SSE_Market/SSE_market_client/dist:/usr/share/nginx/pc
+      # - /root/SSE_Market/sse_market_manager/dist:/usr/share/nginx/manager
+      - /root/SSE_Market/sse_market_client_public/dist:/usr/share/nginx/open
+      - /root/SSE_Market/hexo_blog/public:/usr/share/nginx/blog
+      - /root/SSE_Market/sse_market_new_client/newSSE/dist:/usr/share/nginx/new
+  # db:
+  #   image: mysql:5.7
+  #   volumes:
+  #     - blog_db_data:/var/lib/mysql
+  #   # networks:
+  #   #   - default
+  #   restart: always
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: somewordpress
+  #     MYSQL_DATABASE: wordpress
+  #     MYSQL_USER: wordpress
+  #     MYSQL_PASSWORD: wordpress
+  # wordpress:
+  #   depends_on:
+  #     - db
+  #   # networks:
+  #   #   - my_net
+  #   #   - default
+  #   container_name: wordpress
+  #   image: docker.io/bitnami/wordpress-nginx
+  #   ports:
+  #     - 80:80
+  #     - 443:443
+  #   volumes:
+  #     - /root/SSE_Market/Nginx:/etc/letsencrypt/
+  #     - /root/SSE_Market/sse_market_mobile/dist:/usr/share/nginx/mb
+  #     - /root/SSE_Market/SSE_market_client/dist:/usr/share/nginx/pc
+  #     # - blog_wordpress_data:/opt/bitnami/wordpress
+  #     - ../nginx_proxy/opt:/opt/bitnami/nginx/conf/server_blocks
+  #     # - ../nginx_proxy/nginx.conf:/opt/bitnami/nginx/conf/nginx.conf:ro
+  #     # - /root/SSE_Market/config/Apache/apache2:/etc/apache2
+  #     # - /root/SSE_Market/SSL/Apache:/etc/ssl/Apache
+  #   # ports:
+  #   #   - 88:8080
+  #   #   - 4433:8443
+  #   restart: always
+  #   environment:
+  #     WORDPRESS_DATABASE_HOST: db
+  #     WORDPRESS_DATABASE_USER: wordpress
+  #     WORDPRESS_DATABASE_PASSWORD: wordpress
+  #     WORDPRESS_DATABASE_NAME: wordpress
+
+volumes:
+  my-vol:
+  # blog_db_data: 
+  #   external: true
+  # wordpress_data: 
+  # blog_wordpress_data:
+  #   external: true
+  # --------------
+  # db-data:
+  # event-data:
+  # event-logs:
+  # plausible-data:
+  # --------------
+
+networks:
+  sse_market_network:
+    driver: bridge

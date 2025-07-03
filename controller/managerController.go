@@ -553,30 +553,3 @@ func AddKey(c *gin.Context) {
 	db.Create(&newkey)
 	response.Response(c, http.StatusOK, 200, nil, "邀请码添加成功")
 }
-func GetPostDetail(c *gin.Context) {
-	db := common.GetDB()
-	var post model.Post
-	var id PostID
-	if err := c.ShouldBindJSON(&id); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(), // 打印具体的错误信息
-		})
-		return
-	}
-	if err := db.Order("postID DESC").Where("PostID = ?", id.Id).First(&post).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to retrieve post",
-		})
-		return
-	}
-
-	response := PostDetailResponse{
-		Title:      post.Title,
-		Text:       post.Ptext,
-		User_id:    post.UserID,
-		LikeNum:    post.LikeNum,
-		CommentNum: post.CommentNum,
-		BrowseNum:  post.BrowseNum,
-	}
-	c.JSON(http.StatusOK, response)
-}

@@ -42,6 +42,5 @@ func CollectRoute(r *gin.Engine) *gin.Engine {
 	adminAuth.POST("/api1/auth/getKey", controller.GetKey)
 	adminAuth.POST("/api1/auth/addKey", controller.AddKey)
 	adminAuth.POST("/api1/auth/getfeedback", controller.Getfeedback)
-	adminAuth.POST("/api1/auth/getPostDetail", controller.GetPostDetail)
 	return r
 }

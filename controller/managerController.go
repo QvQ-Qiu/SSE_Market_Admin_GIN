@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"sse_market_admin/common"
 	"sse_market_admin/dto"
@@ -579,4 +580,67 @@ func GetPostDetail(c *gin.Context) {
 		BrowseNum:  post.BrowseNum,
 	}
 	c.JSON(http.StatusOK, response)
+}
+
+func GenerateInviteCode(prefix string, length int) string {
+	// 定义可能的字符集（大小写字母和数字）
+	charSet := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+
+	rand.Seed(time.Now().UnixNano())
+	randomPart := make([]byte, length)
+	for i := range randomPart {
+		randomPart[i] = charSet[rand.Intn(len(charSet))]
+	}
+	return prefix + string(randomPart)
+}
+
+func CreateKeys(c *gin.Context) {
+	const (
+		prefix = "SSE" // 邀请码前缀
+		length = 5     // 随机部分长度
+		count  = 10    // 生成的邀请码数量
+	)
+
+	db := common.GetDB() // 获取数据库连接
+
+	var keys []model.CDKey
+	for i := 0; i < count; i++ {
+		var key model.CDKey
+		for {
+			// 生成邀请码
+			code := GenerateInviteCode(prefix, length)
+			// 检查是否重复
+			var existingKey model.CDKey
+			existingKey.Content = code
+			if result := db.Where("content = ?", code).First(&existingKey); result.Error == nil {
+				continue
+			}
+			// 如果没有重复，保存该邀请码
+			key = model.CDKey{
+				Content:     code,
+				Used:        false,
+				CreatedTime: time.Now(),
+				UsedTime:    time.Now().Add(time.Second * 100), // 默认为空
+			}
+			db.Create(&key)
+			keys = append(keys, key)
+			break
+		}
+	}
+
+	// 返回生成的邀请码列表
+	var responseKeys []map[string]string
+	for _, key := range keys {
+		responseKeys = append(responseKeys, map[string]string{
+			"Id":        fmt.Sprintf("%d", key.CDKeyID),
+			"Code":      key.Content,
+			"Status":    "未使用",
+			"CreatedAt": key.CreatedTime.String(),
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "邀请码生成成功",
+		"keys":    responseKeys,
+	})
 }
